@@ -13,7 +13,7 @@ Use the mkdists.py script on the tag you just created.
 Example::
 
   git checkout 1.0
-  python mkdists.py PloneHotfix20210518
+  python mkdists.py
   git checkout master
 
 This creates the zip file in the dist directory.
