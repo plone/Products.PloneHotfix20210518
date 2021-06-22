@@ -23,6 +23,10 @@ jobs:
     name: ${{ matrix.config[1] }}
     steps:
     - uses: actions/checkout@v2
+    - name: Install lxml compilation dependencies
+      run: |
+          sudo apt-get update
+          sudo apt-get install libxml2-dev libxslt1-dev
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
