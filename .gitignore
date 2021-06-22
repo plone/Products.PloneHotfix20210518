@@ -1,0 +1,8 @@
+.installed.cfg
+.Python
+.tox/
+bin/
+include/
+lib/
+local.cfg
+pip-selfcheck.json

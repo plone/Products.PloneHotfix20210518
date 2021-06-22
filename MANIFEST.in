@@ -1,0 +1,5 @@
+graft docs
+graft Products
+prune Products/*/tests
+prune dist
+global-exclude *.pyc
