@@ -1,3 +1,4 @@
+from AccessControl.SecurityManagement import getSecurityManager
 from AccessControl.ZopeGuards import guarded_import
 from OFS.interfaces import ITraversable
 from Products.PageTemplates import Expressions
@@ -5,10 +6,29 @@ from zExceptions import NotFound
 from zExceptions import Unauthorized
 from zope.traversing.adapters import traversePathElement
 
+import os
 import types
 import warnings
 
 
+# In the 'bobo aware' Zope traverse methods and functions, various security checks are done.
+# For example for content items, permission checks are done.
+# But for non-content, for example a Python module or a dictionary, the checks were originally very lax.
+# This could be abused.  Now we know that, we want to be as strict as possible.
+#
+# But being stricter could break existing code which worked fine so far,
+# not knowing that it tried to access code which should have been disallowed.
+# So with this hotfix, we are now very strict, but you can change this behavior
+# with an environment variable: STRICT_TRAVERSE_CHECK.
+# - STRICT_TRAVERSE_CHECK=0 mostly uses the original lax/sloppy checks.
+# - STRICT_TRAVERSE_CHECK=1 would use the strict logic.  This is the default.
+# - STRICT_TRAVERSE_CHECK=2 would try the strict logic.
+#   If this fails, log a warning and then fallback to the original lax checks.
+#   The idea would be to use this in development or production for a while, to see which code needs a fix.
+try:
+    STRICT_TRAVERSE_CHECK = int(os.getenv("STRICT_TRAVERSE_CHECK", 1))
+except (ValueError, TypeError, AttributeError):
+    STRICT_TRAVERSE_CHECK = 1
 # Set of names that start with an underscore but that we want to allow anyway.
 ALLOWED_UNDERSCORE_NAMES = set([
     # dunder name is used in plone.app.caching, and maybe other places
@@ -32,18 +52,12 @@ def boboAwareZopeTraverse(object, path_items, econtext):
     necessary (bobo-awareness).
     """
     request = getattr(econtext, 'request', None)
+    validate = getSecurityManager().validate
     path_items = list(path_items)
     path_items.reverse()
 
     while path_items:
         name = path_items.pop()
-
-        if name == '_':
-            warnings.warn('Traversing to the name `_` is deprecated '
-                          'and will be removed in Zope 6.',
-                          DeprecationWarning)
-        elif name.startswith('_') and name not in ALLOWED_UNDERSCORE_NAMES:
-            raise NotFound(name)
 
         if ITraversable.providedBy(object):
             object = object.restrictedTraverse(name)
@@ -62,8 +76,43 @@ def boboAwareZopeTraverse(object, path_items, econtext):
                 # Convert Unauthorized to prevent information disclosures
                 raise NotFound(name)
         else:
-            object = traversePathElement(object, name, path_items,
-                                         request=request)
+            found = traversePathElement(object, name, path_items,
+                                        request=request)
+
+            # Special backwards compatibility exception for the name ``_``,
+            # which was often used for translation message factories.
+            # Allow and continue traversal.
+            if name == '_':
+                warnings.warn('Traversing to the name `_` is deprecated '
+                              'and will be removed in Zope 6.',
+                              DeprecationWarning)
+                object = found
+                continue
+
+            if name.startswith('_'):
+                if name in ALLOWED_UNDERSCORE_NAMES:
+                    object = found
+                    continue
+                # All other names starting with ``_`` are disallowed.
+                # This emulates what restrictedTraverse does.
+                raise NotFound(name)
+
+            if STRICT_TRAVERSE_CHECK:
+                # traversePathElement doesn't apply any Zope security policy,
+                # so we validate access explicitly here.
+                try:
+                    validate(object, object, name, found)
+                    object = found
+                except Unauthorized:
+                    if STRICT_TRAVERSE_CHECK == 2:
+                        # only warn
+                        warnings.warn('Traversing from {0} to {1} is only allowed because STRICT_TRAVERSE_CHECK=2. Possible security problem.'.format(object, name),
+                                      DeprecationWarning)
+                    else:
+                        # Convert Unauthorized to prevent information disclosures
+                        raise NotFound(name)
+            object = found
+
     return object
 
 
@@ -98,18 +147,12 @@ if BoboAwareZopeTraverse is not None:
     def traverse(cls, base, request, path_items):
         """See ``zope.app.pagetemplate.engine``."""
 
+        validate = getSecurityManager().validate
         path_items = list(path_items)
         path_items.reverse()
 
         while path_items:
             name = path_items.pop()
-
-            if name == '_':
-                warnings.warn('Traversing to the name `_` is deprecated '
-                              'and will be removed in Zope 6.',
-                              DeprecationWarning)
-            elif name.startswith('_') and name not in ALLOWED_UNDERSCORE_NAMES:
-                raise NotFound(name)
 
             if ITraversable.providedBy(base):
                 base = getattr(base, cls.traverse_method)(name)
@@ -128,8 +171,49 @@ if BoboAwareZopeTraverse is not None:
                     # Convert Unauthorized to prevent information disclosures
                     raise NotFound(name)
             else:
-                base = traversePathElement(base, name, path_items,
-                                           request=request)
+                found = traversePathElement(base, name, path_items,
+                                            request=request)
+
+                # If traverse_method is something other than
+                # ``restrictedTraverse`` then traversal is assumed to be
+                # unrestricted. This emulates ``unrestrictedTraverse``
+                if cls.traverse_method != 'restrictedTraverse':
+                    base = found
+                    continue
+
+                # Special backwards compatibility exception for the name ``_``,
+                # which was often used for translation message factories.
+                # Allow and continue traversal.
+                if name == '_':
+                    warnings.warn('Traversing to the name `_` is deprecated '
+                                  'and will be removed in Zope 6.',
+                                  DeprecationWarning)
+                    base = found
+                    continue
+
+                if name.startswith('_'):
+                    if name in ALLOWED_UNDERSCORE_NAMES:
+                        base = found
+                        continue
+                    # All other names starting with ``_`` are disallowed.
+                    # This emulates what restrictedTraverse does.
+                    raise NotFound(name)
+
+                if STRICT_TRAVERSE_CHECK:
+                    # traversePathElement doesn't apply any Zope security policy,
+                    # so we validate access explicitly here.
+                    try:
+                        validate(base, base, name, found)
+                    except Unauthorized:
+                        if STRICT_TRAVERSE_CHECK == 2:
+                            # only warn
+                            warnings.warn('Traversing from {0} to {1} is only allowed because STRICT_TRAVERSE_CHECK=2. Possible security problem.'.format(object, name),
+                                        DeprecationWarning)
+                        else:
+                            # Convert Unauthorized to prevent information disclosures
+                            raise NotFound(name)
+
+                base = found
 
         return base
 

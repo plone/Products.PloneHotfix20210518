@@ -98,6 +98,11 @@ class TestAttackVector(BaseTest):
         with self.assertRaises(NotFound):
             template()
 
+    def test_template_bad3(self):
+        template = self._makeOne("bad3.pt")
+        with self.assertRaises(NotFound):
+            template()
+
     def test_template_name(self):
         # Allow accessing __name__ in a skin template or TTW template.
         template = self._makeOne("options_view_name.pt")
@@ -167,6 +172,12 @@ class TestDirectAttackVector(BaseTest):
             traverse_function(string, ("_re", "purge"), None)
         result = trusted_traverse_function(string, ("_re", "purge"), None)
         self.assertEqual(result, re.purge)
+
+    def test_traverse_function_formatter(self):
+        with self.assertRaises(NotFound):
+            traverse_function(string, ("Formatter", "get_field"), None)
+        result = trusted_traverse_function(string, ("Formatter", "get_field"), None)
+        self.assertEqual(result, string.Formatter.get_field)
 
     def test_traverse_function_name(self):
         # We allow access to __name__ always as a special case.
@@ -244,6 +255,13 @@ class TestDirectAttackVector(BaseTest):
             TraverseClass.traverse(string, None, ("_re", "purge"))
         result = TrustedTraverseClass.traverse(string, None, ("_re", "purge"))
         self.assertEqual(result, re.purge)
+
+    @unittest.skipIf(TraverseClass is None, "There is no BoboAwareZopeTraverse class.")
+    def test_traverse_class_formatter(self):
+        with self.assertRaises(NotFound):
+            TraverseClass.traverse(string, None, ("Formatter", "get_field"))
+        result = TrustedTraverseClass.traverse(string, None, ("Formatter", "get_field"))
+        self.assertEqual(result, string.Formatter.get_field)
 
     @unittest.skipIf(TraverseClass is None, "There is no BoboAwareZopeTraverse class.")
     def test_traverse_class_name(self):
