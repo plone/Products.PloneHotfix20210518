@@ -1,2 +1,3 @@
 Hello <span tal:define="string nocall:modules/string;
-                        poc python:nocall('string/Formatter/get_field')(path('string/Formatter'), '0._re.purge', [string], None)" tal:content="poc" />
+                        get_field nocall:string/Formatter/get_field;
+                        poc python:get_field(path('string/Formatter'), '0._re.purge', [string], None)" tal:content="poc" />
