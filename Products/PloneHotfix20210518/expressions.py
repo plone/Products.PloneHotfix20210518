@@ -16,19 +16,24 @@ import warnings
 # But for non-content, for example a Python module or a dictionary, the checks were originally very lax.
 # This could be abused.  Now we know that, we want to be as strict as possible.
 #
-# But being stricter could break existing code which worked fine so far,
+# But being stricter breaks existing code which worked fine so far,
 # not knowing that it tried to access code which should have been disallowed.
-# So with this hotfix, we are now very strict, but you can change this behavior
+# One thing that goes wrong, is that any skin template that calls context/main_template/macros/master fails,
+# for example when viewing a revision from CMFEditions.
+#
+# So with this hotfix, by necessity we are still lax/forgiving, but you can change this behavior
 # with an environment variable: STRICT_TRAVERSE_CHECK.
 # - STRICT_TRAVERSE_CHECK=0 mostly uses the original lax/sloppy checks.
-# - STRICT_TRAVERSE_CHECK=1 would use the strict logic.  This is the default.
-# - STRICT_TRAVERSE_CHECK=2 would try the strict logic.
+#   This sadly needs to be the default.
+# - STRICT_TRAVERSE_CHECK=1 uses the strict logic.
+#   When you know what you are doing, you can try this.
+# - STRICT_TRAVERSE_CHECK=2 first tries the strict logic.
 #   If this fails, log a warning and then fallback to the original lax checks.
 #   The idea would be to use this in development or production for a while, to see which code needs a fix.
 try:
-    STRICT_TRAVERSE_CHECK = int(os.getenv("STRICT_TRAVERSE_CHECK", 1))
+    STRICT_TRAVERSE_CHECK = int(os.getenv("STRICT_TRAVERSE_CHECK", 0))
 except (ValueError, TypeError, AttributeError):
-    STRICT_TRAVERSE_CHECK = 1
+    STRICT_TRAVERSE_CHECK = 0
 # Set of names that start with an underscore but that we want to allow anyway.
 ALLOWED_UNDERSCORE_NAMES = set([
     # dunder name is used in plone.app.caching, and maybe other places
