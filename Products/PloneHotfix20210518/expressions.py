@@ -77,6 +77,13 @@ def guarded_import_module(base, path_items):
             return getSecurityManager
         # Convert Unauthorized to prevent information disclosures
         raise NotFound(name)
+    except TypeError:
+        # During testing with security-policy-implementation python
+        # and verbose-security on, I got this error when an Unauthorized was raised
+        # for string.Formatter.get_field:
+        # TypeError: descriptor '__repr__' of 'object' object needs an argument
+        # This was in the item_repr function of AccessControl.ImplPython.
+        raise NotFound(name)
     if base in DISALLOWED_OBJECTS:
         raise NotFound(name)
     return base
