@@ -1,4 +1,5 @@
 from AccessControl.SecurityManagement import getSecurityManager
+from AccessControl.ZopeGuards import guarded_getattr
 from AccessControl.ZopeGuards import guarded_import
 from OFS.interfaces import ITraversable
 from Products.PageTemplates import Expressions
@@ -7,6 +8,8 @@ from zExceptions import Unauthorized
 from zope.traversing.adapters import traversePathElement
 
 import os
+import string
+import sys
 import types
 import warnings
 
@@ -45,8 +48,38 @@ ALLOWED_UNDERSCORE_NAMES = set([
     # https://github.com/smcmahon/Products.PloneFormGen/pull/229
     "_authenticator",
 ])
-
+# Some objects we really do not trust, even when you have found a workaround to reach them.
+DISALLOWED_OBJECTS = [
+    os,
+    sys,
+    # string.Formatter sounds innocent, but can be abused.
+    string.Formatter,
+]
 _orig_boboAwareZopeTraverse = Expressions.boboAwareZopeTraverse
+
+
+def guarded_import_module(base, path_items):
+    name = path_items[0]
+    try:
+        guarded_import(base.__name__, fromlist=path_items)
+        # guarded_import will do most security checking
+        # but will not return the imported item itself,
+        # so we need to call getattr ourselves.
+        # Actually, not all security checks are done, so we call guarded_getattr.
+        for name in path_items:
+            base = guarded_getattr(base, name)
+    except Unauthorized:
+        # special case for OFS/zpt/main.zpt which uses
+        # modules/AccessControl/SecurityManagement/getSecurityManager
+        # which should have been modules/AccessControl/getSecurityManager
+        # Fixed in Zope 4.6.1 and 5.2.1.
+        if name == "SecurityManagement" and path_items[-1] == "getSecurityManager":
+            return getSecurityManager
+        # Convert Unauthorized to prevent information disclosures
+        raise NotFound(name)
+    if base in DISALLOWED_OBJECTS:
+        raise NotFound(name)
+    return base
 
 
 def shared_traverse(base, path_items, request, traverse_method="restrictedTraverse"):
@@ -65,20 +98,11 @@ def shared_traverse(base, path_items, request, traverse_method="restrictedTraver
         if ITraversable.providedBy(base):
             base = getattr(base, traverse_method)(name)
         elif isinstance(base, types.ModuleType):
-            try:
-                # guarded_import will do all necessary security checking
-                # but will not return the imported item itself.
-                guarded_import(base.__name__, fromlist=[name])
-                base = getattr(base, name)
-            except Unauthorized:
-                # special case for OFS/zpt/main.zpt which uses
-                # modules/AccessControl/SecurityManagement/getSecurityManager
-                # which should have been modules/AccessControl/getSecurityManager
-                # Fixed in Zope 4.6.1 and 5.2.1.
-                if name == "SecurityManagement" and path_items == ["getSecurityManager"]:
-                    continue
-                # Convert Unauthorized to prevent information disclosures
-                raise NotFound(name)
+            # We should be able to handle the name and all remaining path items at once.
+            # Use the correct order again.
+            path_items.append(name)
+            path_items.reverse()
+            return guarded_import_module(base, path_items)
         else:
             found = traversePathElement(base, name, path_items,
                                         request=request)
@@ -106,6 +130,9 @@ def shared_traverse(base, path_items, request, traverse_method="restrictedTraver
                     continue
                 # All other names starting with ``_`` are disallowed.
                 # This emulates what restrictedTraverse does.
+                raise NotFound(name)
+
+            if found in DISALLOWED_OBJECTS:
                 raise NotFound(name)
 
             if STRICT_TRAVERSE_CHECK:

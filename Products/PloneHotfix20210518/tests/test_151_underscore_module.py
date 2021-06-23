@@ -17,6 +17,7 @@ import os
 import random
 import re
 import string
+import sys
 import unittest
 
 
@@ -56,6 +57,10 @@ class DummyView(object):
     __name__ = "dummy-view"
     _authenticator = "secret"
     _ = "translation"
+    # Even via weird names, some items should not be reachable:
+    os_hack = os
+    sys_hack = sys
+    Formatter_hack = string.Formatter
 
 
 class DummyContent(SimpleItem):
@@ -175,9 +180,30 @@ class TestDirectAttackVector(BaseTest):
 
     def test_traverse_function_formatter(self):
         with self.assertRaises(NotFound):
+            traverse_function(string, ("Formatter",), None)
+        result = trusted_traverse_function(string, ("Formatter",), None)
+        self.assertEqual(result, string.Formatter)
+
+    def test_traverse_function_formatter_get_field(self):
+        with self.assertRaises(NotFound):
             traverse_function(string, ("Formatter", "get_field"), None)
         result = trusted_traverse_function(string, ("Formatter", "get_field"), None)
         self.assertEqual(result, string.Formatter.get_field)
+
+    def test_traverse_function_hacked_names(self):
+        view = DummyView()
+        with self.assertRaises(NotFound):
+            traverse_function(view, ("os_hack",), None)
+        with self.assertRaises(NotFound):
+            traverse_function(view, ("sys_hack",), None)
+        with self.assertRaises(NotFound):
+            traverse_function(view, ("Formatter_hack",), None)
+        result = trusted_traverse_function(view, ("os_hack",), None)
+        self.assertEqual(result, os)
+        result = trusted_traverse_function(view, ("sys_hack",), None)
+        self.assertEqual(result, sys)
+        result = trusted_traverse_function(view, ("Formatter_hack",), None)
+        self.assertEqual(result, string.Formatter)
 
     def test_traverse_function_name(self):
         # We allow access to __name__ always as a special case.
@@ -258,6 +284,13 @@ class TestDirectAttackVector(BaseTest):
 
     @unittest.skipIf(TraverseClass is None, "There is no BoboAwareZopeTraverse class.")
     def test_traverse_class_formatter(self):
+        with self.assertRaises(NotFound):
+            TraverseClass.traverse(string, None, ("Formatter",))
+        result = TrustedTraverseClass.traverse(string, None, ("Formatter",))
+        self.assertEqual(result, string.Formatter)
+
+    @unittest.skipIf(TraverseClass is None, "There is no BoboAwareZopeTraverse class.")
+    def test_traverse_class_formatter_get_field(self):
         with self.assertRaises(NotFound):
             TraverseClass.traverse(string, None, ("Formatter", "get_field"))
         result = TrustedTraverseClass.traverse(string, None, ("Formatter", "get_field"))
