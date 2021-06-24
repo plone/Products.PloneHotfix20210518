@@ -5,7 +5,7 @@ This hotfix fixes several security issues:
 
 - Remote Code Execution via traversal in expressions via aliases.
   Reported by David Miller.
-- Remote Code Execution via traversal in expressions.
+- Remote Code Execution via traversal in expressions (no aliases).
   Reported by Calum Hutton.
 - Writing arbitrary files via docutils and Python Script.
   Reported by Calum Hutton.
@@ -46,6 +46,28 @@ On Plone 5.2.X it is supported on Python 2.7 and Python 3.6/3.7/3.8.
 
 The fixes included here will be incorporated into subsequent releases of Plone,
 so Plone 5.2.5 and greater should not require this hotfix.
+
+
+Zope
+====
+
+Zope is also affected.
+New versions for Zope and other packages are available.
+Upgrading to those is the recommended way.
+
+If you cannot upgrade yet, you can try the Plone hotfix.
+It has not been tested on Zope only, but we try not to let the Plone-specific code get in the way, so it should be okay.
+
+These vulnerabilities mentioned above are relevant for Zope:
+
+- Remote Code Execution via traversal in expressions via aliases.
+  Fixes released in Zope 4.6 and 5.2.
+- Remote Code Execution via traversal in expressions (no aliases).
+  Fixes released in Zope 4.6.1 and 5.2.1.
+- Various information disclosures.
+  Fixes released in Products.PluggableAuthService 2.6.0, Products.GenericSetup 2.1.1, and Zope 4.5.5.
+- Reflected XSS in various spots.
+  Fixes released in Products.CMFCore 2.5.1 and Products.PluggableAuthService 2.6.2.
 
 
 Installation
