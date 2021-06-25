@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from ._compat import char_types
+from .htmltools import html_escape
+from .htmltools import html_safe
 
 import json
 
@@ -28,17 +30,10 @@ if fc is not None:
     # or we have an already fixed version.
     # This means the title is already escaped.
     # We need to know this, to avoid getting a doubly_escaped title.
-    escape = getattr(fc, "escape", None)
-    if escape is not None:
+    if hasattr(fc, "escape"):
         title_already_escaped = True
     else:
         title_already_escaped = False
-        try:
-            # py3
-            from html import escape
-        except ImportError:
-            # py2
-            from cgi import escape
 
 
     def context_info_call(self):
@@ -59,7 +54,7 @@ if fc is not None:
             # if title_already_escaped and key in (b"Title", u"Title"):
             if title_already_escaped and key == "Title":
                 continue
-            escaped_value = escape(value)
+            escaped_value = html_escape(value)
             if escaped_value == value:
                 continue
             obj[key] = escaped_value
