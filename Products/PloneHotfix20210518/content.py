@@ -26,16 +26,6 @@ if fc is not None:
     if not hasattr(fc.ContextInfo, orig_name):
         setattr(fc.ContextInfo, orig_name, fc.ContextInfo.__call__)
 
-    # Also, if 'escape' is defined, then either the 2020 hotfix is there,
-    # or we have an already fixed version.
-    # This means the title is already escaped.
-    # We need to know this, to avoid getting a doubly_escaped title.
-    if hasattr(fc, "escape"):
-        title_already_escaped = True
-    else:
-        title_already_escaped = False
-
-
     def context_info_call(self):
         result = self._orig___call__()
         data = json.loads(result)
@@ -46,18 +36,10 @@ if fc is not None:
         for key, value in obj.items():
             if not isinstance(value, char_types):
                 continue
-            # Watch out for doubly escaped Title.
-            # In Python 2, the keys are unicode.
-            # We could use simplejson.loads, which always gives string.
-            # But the use of simplejson was only introduced in
-            # plone.app.content 3.4.2.  Let's check bytes and unicode.
-            # if title_already_escaped and key in (b"Title", u"Title"):
-            if title_already_escaped and key == "Title":
+            safe_value = html_safe(value)
+            if safe_value == value:
                 continue
-            escaped_value = html_escape(value)
-            if escaped_value == value:
-                continue
-            obj[key] = escaped_value
+            obj[key] = safe_value
             changed = True
         if not changed:
             return result
