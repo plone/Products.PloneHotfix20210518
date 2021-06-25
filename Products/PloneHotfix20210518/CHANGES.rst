@@ -5,7 +5,17 @@ Changelog
 1.5 (unreleased)
 ----------------
 
-- Nothing changed yet.
+- Added support for environment variable ``STRICT_TRAVERSE_CHECK``.
+
+  - Default value is 0, which means as strict as the code from version 1.4.
+  - Value 1 is very strict, the same as the stricter code introduced in Zope 5.2.1
+    and now taken over in Zope 4.6.2.
+    There are known issues in Plone with this, for example in the versions history view.
+  - Value 2 means: try to be strict, but if this fails we show a warning and return the found object anyway.
+    The idea would be to use this in development or production for a while, to see which code needs a fix.
+
+- Fix Remote Code Execution via traversal in expressions via string formatter.
+  This is a variant of two earlier vulnerabilities in this hotfix.
 
 
 1.4 (2021-06-08)

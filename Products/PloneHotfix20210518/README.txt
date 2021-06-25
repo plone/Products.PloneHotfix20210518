@@ -7,6 +7,8 @@ This hotfix fixes several security issues:
   Reported by David Miller.
 - Remote Code Execution via traversal in expressions (no aliases).
   Reported by Calum Hutton.
+- Remote Code Execution via traversal in expressions via string formatter.
+  Reported by David Miller.
 - Writing arbitrary files via docutils and Python Script.
   Reported by Calum Hutton.
 - Stored XSS from file upload (svg, html).
@@ -68,6 +70,8 @@ These vulnerabilities mentioned above are relevant for Zope:
   Fixes released in Products.PluggableAuthService 2.6.0, Products.GenericSetup 2.1.1, and Zope 4.5.5.
 - Reflected XSS in various spots.
   Fixes released in Products.CMFCore 2.5.1 and Products.PluggableAuthService 2.6.2.
+- Remote Code Execution via traversal in expressions via string formatter.
+  Fixes released in Zope 4.6.2, which takes over the already stricter code from Zope 5.2.1.
 
 
 Installation
