@@ -14,6 +14,9 @@ import transaction
 NORMAL_TEXT = "Smith & Jones"
 ESCAPED_TEXT = "Smith &amp; Jones"
 DOUBLY_ESCAPED_TEXT = "Smith &amp;amp; Jones"
+# For script tags, we could either escape them or filter them
+# using the safe html filter.
+HACKED = 'The <script>alert("hacker")</script> was here.'
 
 
 class TestAttackVector(BaseTest):
@@ -26,7 +29,7 @@ class TestAttackVector(BaseTest):
         )
         return browser
 
-    def test_xss(self):
+    def test_ampersand(self):
         self.portal.invokeFactory(
             "Folder",
             id="folder1",
@@ -67,6 +70,50 @@ class TestAttackVector(BaseTest):
             pass
         else:
             self.assert_only_escaped_text(browser)
+
+    def test_xss(self):
+        self.portal.invokeFactory(
+            "Folder",
+            id="folder1",
+            title=HACKED,
+            description=HACKED,
+            creators=(HACKED,),
+            contributors=(HACKED,),
+        )
+        folder1 = self.portal.folder1
+        self.assertEqual(folder1.Title(), HACKED)
+        # With good old Archetypes the description gets cleaned up to
+        # 'The  alert("hacker")  was here.'
+        # self.assertEqual(folder1.Description(), HACKED)
+        folder1.invokeFactory(
+            "Document",
+            id="page1",
+            title=HACKED,
+            description=HACKED,
+            creators=(HACKED,),
+            contributors=(HACKED,),
+        )
+        page1 = folder1.page1
+        self.assertEqual(page1.Title(), HACKED)
+        # self.assertEqual(page1.Description(), HACKED)
+        transaction.commit()
+
+        # Check the output.
+        browser = self.get_browser()
+        browser.open(folder1.absolute_url())
+        self.assert_not_in(HACKED, browser.contents)
+        browser.open(page1.absolute_url())
+        self.assert_not_in(HACKED, browser.contents)
+        browser.open(folder1.absolute_url() + "/folder_contents")
+        self.assert_not_in(HACKED, browser.contents)
+
+        # The next exists only on Plone 5.0+.
+        try:
+            browser.open(folder1.absolute_url() + "/@@fc-contextInfo")
+        except NotFound:
+            pass
+        else:
+            self.assert_not_in(HACKED, browser.contents)
 
     def assert_only_escaped_text(self, browser):
         body = browser.contents
