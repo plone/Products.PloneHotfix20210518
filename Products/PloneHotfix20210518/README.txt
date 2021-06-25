@@ -27,6 +27,9 @@ This hotfix fixes several security issues:
   Reported by MisakiKata and David Miller.
 - Server Side Request Forgery via lxml parser.
   Reported by MisakiKata and David Miller.
+- XSS in folder contents on Plone 5.0 and higher.
+  Reported by Matt.
+  Only included since version 1.5 of the hotfix.
 
 
 Compatibility

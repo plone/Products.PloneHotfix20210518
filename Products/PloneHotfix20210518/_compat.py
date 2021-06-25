@@ -11,8 +11,12 @@ if PY3:
     # integer_types = (int,)
     text_type = str
     # binary_type = bytes
+    # six has no char_types, but it should:
+    # bytes + string + unicode, where defined.
+    char_types = (bytes, str)
 else:
     string_types = (basestring,)
     # integer_types = (int, long)
     text_type = unicode
     # binary_type = str
+    char_types = string_types
