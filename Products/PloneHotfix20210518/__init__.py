@@ -12,6 +12,16 @@ except pkg_resources.DistributionNotFound:
     HAS_PLONE = False
 else:
     from Products.CMFPlone import patches  # noqa
+# If the 2020 hotfix is available, we want to load it first as well,
+# especially for the 'content' patch.
+# In general, it is advisable for users to put the oldest hotfix first in the eggs.
+try:
+    pkg_resources.get_distribution("Products.PloneHotfix20200121")
+except pkg_resources.DistributionNotFound:
+    pass
+else:
+    import Products.PloneHotfix20200121  # noqa
+
 
 # General hotfixes for all, including Zope/CMF.
 hotfixes = [
@@ -64,6 +74,7 @@ if HAS_PLONE:
     hotfixes.append("publishing")
     hotfixes.append("qi")
     hotfixes.append("transforms")
+    hotfixes.append("content")
 
 # Apply the fixes
 for hotfix in hotfixes:

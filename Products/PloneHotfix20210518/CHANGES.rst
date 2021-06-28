@@ -5,6 +5,9 @@ Changelog
 1.5 (unreleased)
 ----------------
 
+
+- Fixed new XSS vulnerability in folder contents on Plone 5.0 and higher.
+
 - Added support for environment variable ``STRICT_TRAVERSE_CHECK``.
 
   - Default value is 0, which means as strict as the code from version 1.4.
