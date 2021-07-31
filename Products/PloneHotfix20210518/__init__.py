@@ -26,6 +26,7 @@ else:
 # General hotfixes for all, including Zope/CMF.
 hotfixes = [
     "expressions",
+    "formatter",
     "genericsetup",
     "pas",
     "propertymanager",

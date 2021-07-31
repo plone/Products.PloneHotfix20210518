@@ -5,7 +5,12 @@ Changelog
 1.6 (unreleased)
 ----------------
 
-- Nothing changed yet.
+- Fix Remote Code Execution via Python Script and string Formatter.
+  This is a variant of earlier vulnerabilities in this hotfix.
+  Only Plone 5.2 on Python 3 is vulnerable.
+  Alternatively on Python 5.2, you can upgrade to ``AccessControl`` 4.3.
+  On earlier versions of Plone and Python, the fix is not needed,
+  but it is fine to upgrade to this new hotfix version.
 
 
 1.5 (2021-06-28)
