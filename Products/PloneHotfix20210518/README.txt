@@ -30,6 +30,10 @@ This hotfix fixes several security issues:
 - XSS in folder contents on Plone 5.0 and higher.
   Reported by Matt Moreschi.
   Only included since version 1.5 of the hotfix.
+- Remote Code Execution via Python Script.
+  Reported by Calum Hutton.
+  Only Plone 5.2 on Python 3 is vulnerable.
+  Only included since version 1.6 of the hotfix.
 
 
 Compatibility
@@ -75,6 +79,8 @@ These vulnerabilities mentioned above are relevant for Zope:
   Fixes released in Products.CMFCore 2.5.1 and Products.PluggableAuthService 2.6.2.
 - Remote Code Execution via traversal in expressions via string formatter.
   Fixes released in Zope 4.6.2, which takes over the already stricter code from Zope 5.2.1.
+- Remote Code Execution via Python Script.
+  Fixes released in Zope 4.6.3 and 5.3.
 
 
 Installation
