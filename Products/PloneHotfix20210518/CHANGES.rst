@@ -2,7 +2,7 @@ Changelog
 =========
 
 
-1.6 (unreleased)
+1.6 (2021-07-31)
 ----------------
 
 - Fix Remote Code Execution via Python Script and string Formatter.
