@@ -14,7 +14,7 @@ Example::
 
   git checkout 1.0
   python mkdists.py
-  git checkout master
+  git checkout main
 
 This creates the zip file in the dist directory.
 Edit the hotfix page on plone.org and upload this.
